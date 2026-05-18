@@ -32,9 +32,16 @@ def execute_python_code(code: str):
         sys.stdout = old_stdout
 
 def analyze_error(traceback_text: str):
-    matches = re.findall(r'line (\d+)', traceback_text)
-    return sorted(list(set(int(x) for x in matches)))
+    lines = []
 
+    for line in traceback_text.splitlines():
+        if 'File "<string>"' in line and 'line' in line:
+            match = re.search(r'line (\d+)', line)
+            if match:
+                lines.append(int(match.group(1)))
+
+    return sorted(list(set(lines)))
+    
 @app.post("/code-interpreter")
 async def code_interpreter(payload: dict):
 
