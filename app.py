@@ -1,7 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List
 import traceback
 import sys
 from io import StringIO
@@ -16,13 +14,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-class CodeRequest(BaseModel):
-    code: str
-
-class CodeResponse(BaseModel):
-    error: List[int]
-    result: str
 
 def execute_python_code(code: str):
     old_stdout = sys.stdout
@@ -42,13 +33,14 @@ def execute_python_code(code: str):
 
 def analyze_error(traceback_text: str):
     matches = re.findall(r'line (\d+)', traceback_text)
-    lines = [int(x) for x in matches]
-    return sorted(list(set(lines)))
+    return sorted(list(set(int(x) for x in matches)))
 
-@app.post("/code-interpreter", response_model=CodeResponse)
-def code_interpreter(req: CodeRequest):
+@app.post("/code-interpreter")
+async def code_interpreter(payload: dict):
 
-    execution = execute_python_code(req.code)
+    code = payload.get("code", "")
+
+    execution = execute_python_code(code)
 
     if execution["success"]:
         return {
